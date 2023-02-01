@@ -1,0 +1,260 @@
+
+https://hub.docker.com/search?q=
+https://mcr.microsoft.com/
+Images 
+containers
+
+Windows but with linux support
+WSL
+
+Find images in Docker Desktop
+Install and run Sql server
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=MetraTech1" -p 1433:1433 --name mssqlserver --hostname sql1 -d mcr.microsoft.com/mssql/server
+
+InfluxDb + Grafana
+"C:\Users\ASkrinnik\OneDrive\Документы\__Work\InfluxDb + Grafana\PerfTestEnv\run_container.bat"
+
+PAUSE
+!!!EDGE-API
+Start SQL Server
+C:\dev\edge-rest-api\CreateContainer.bat
+https://localhost/swagger/index.html
+
+START
+
+Где файл C:\Users\ASkrinnik\AppData\Local\Docker\wsl\data
+Доступ через эксплорер к файловой системе. 
+\\wsl$\docker-desktop-data\data\docker\
+Можно копировать туда и назад
+
+
+
+Framework-dependend
+------------------------
+dotnet publish -c Release -o publish /p:UseAppHost=false
+docker build -f "Dockerfile1" --force-rm -t consoleapp1_v1 .
+
+docker run --name App1 consoleapp1_v1
+docker start App1 -a
+docker export App1 > C:\Users\ASkrinnik\Downloads\Containers\App1.tar
+Copy docker run
+
+Self-contained
+---------------
+dotnet publish -c Release -o publish_self -r linux-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true
+docker build -f "Dockerfile2" --force-rm -t consoleapp1_v21 .
+docker run --name App21 consoleapp1_v2
+docker export App2 > C:\Users\ASkrinnik\Downloads\Containers\App2.tar
+Copy docker run
+
+
+Build and run
+---------------
+docker build -f "Dockerfile3" --force-rm -t consoleapp1_v3 .
+docker export App3 > C:\Users\ASkrinnik\Downloads\Containers\App3.tar
+Copy docker run
+
+Build and run in separate image
+-------------------------------
+docker build -f "Dockerfile4" --force-rm -t consoleapp1_v4 .
+docker export App4 > C:\Users\ASkrinnik\Downloads\Containers\App4.tar
+
+CACHED
+Change in src
+Run again
+Run again. All Cached
+Copy docker run
+
+
+Dockerfile2  => debian:11-slim
+
+VS OOTB Dockerfile
+------------------
+Add a library!!!
+Add docker support
+1. Новые файлы Dockerfile и .docignore
+2. Log в консольном окне Container tools
+3. consoleapp1:dev image
+4. ConsoleApp1 container
+5. Containers toolbox
+6. launchsettings
+7. В файле проекта    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+
+Что в dockerfile файлах
+копирование двух файлов проектов и dotnet restore
+
+Что в логе по созданию image
+ docker build ... --target base
+
+Что в логе по созданию container
+  разбираем командую параметр -v
+  детали в Desktop.
+    Inspect: volumes!!!!
+  
+ 
+containers toolbox:
+  Environment и сверяем с Copy docker run
+  volumes
+  Files
+
+Этот таргет по сути просто создает образ с ASP.NET SDK
+А когда стартует контейнер во время дебага, то он мапирует кучу volumes с исходниками, сбилдженым приложением, нугет пакетами и т.д.
+
+Try to debug and see launchSettings
+
+build runtime image (ПКМ)
+смотрим на команду
+создаем контейнер
+Смотрим в файлы
+
+Переводим в Release конфигурацию
+Запускаем на Debug, наблюдаем тоже самое
+Смотрим в контейнер. Ничего не мапируется кроме дебаггера
+
+
+Web API with Dockerfile
+-------------
+Create new WebAPI with HTTPS and docker support
+
+Что делает
+
+Launchsettings
+запускаем http, https, iisexpress
+
+смотрим Dockerfile
+EXPOSE 80 и  443
+
+Смотрим в Container
+  Volumes
+  Где сертификат
+  UserSecrets
+  
+--------------------
+работа с SQL server на хосте
+Create MyDb database
+
+USE [MyDb]
+GO
+CREATE TABLE [dbo].[MyTable](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Field1] [nvarchar](50) NOT NULL,
+ CONSTRAINT [PK_MyTable] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+INSERT INTO MyTable (Field1) VALUES ('String1')
+INSERT INTO MyTable (Field1) VALUES ('String2')
+INSERT INTO MyTable (Field1) VALUES ('String3')
+INSERT INTO MyTable (Field1) VALUES ('String4')
+INSERT INTO MyTable (Field1) VALUES ('String5')
+GO
+
+Copy controller
+        [HttpGet]
+        public Dictionary<int, string?> GetDb()
+        {
+
+            var connectionString = _configuration.GetConnectionString("MyDb");
+            _logger.LogInformation($"ConnectionString: {connectionString}");
+
+            using var connection = new SqlConnection(connectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"SELECT * FROM MyTable";
+
+            using var reader = command.ExecuteReader();
+
+            var data = new Dictionary<int, string?>();
+            while (reader.Read())
+                data[reader.GetInt32(0)] = reader.GetString(1);
+            return data;
+        }
+
+Microsoft.Data.SqlClient
+
+  "ConnectionStrings": {
+    "MyDb": "Server=localhost;Database=MyDb;Integrated Security=SSPI;TrustServerCertificate=True"
+  }
+
+Run HTTP
+
+Switch to Docker
+LaunchSettings.json:
+        "ConnectionStrings:MyDb": "Server=host.docker.internal;Database=MyDb;User=sa;Password=MetraTech1;TrustServerCertificate=True"
+
+
+Работа с SQL сервер  контейнере
+-------------------------------------
+stop local SQL service
+
+Сервер с хранилищем внутри контейнера
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=MyPassword123" -p 1433:1433 --name mssqlserver --hostname sql1 -d mcr.microsoft.com/mssql/server
+
+Хранилище на диске хоста
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=MyPassword123" -p 1433:1433 -v C:\DockerVolumes\MsSqlServer\data:/var/opt/mssql/data -v C:\DockerVolumes\MsSqlServer\log:/var/opt/mssql/log -v C:\DockerVolumes\MsSqlServer\secrets:/var/opt/mssql/secrets --name mssqlserver --hostname sql1 -d mcr.microsoft.com/mssql/server
+
+Create MyDb
+Create table and data
+
+docker network ls
+docker network inspect bridge
+use server's IP-address
+
+
+push repo
+--------------
+Create new console app
+            for (var i = 0; i < 10; i++)
+            {
+                Console.WriteLine(i);
+                Thread.Sleep(TimeSpan.FromSeconds(1));
+            }
+
+            Console.WriteLine("Done!!!!!");
+
+Add Docker support
+build release image
+Run it
+
+https://hub.docker.com/
+
+getting password: Account settings, Security
+docker login -u "mirrorboyskr" --password dckr_pat_rxt0cUkCsm2kXPsmmx33oNO-tIs
+
+set tag:
+docker tag consoleapp1 mirrorboyskr/my-app
+
+set tag when build:
+docker build -f "C:\dev\ConsoleApp1\ConsoleApp1\Dockerfile1" --force-rm -t mirrorboyskr/consoleapp1_v1  "C:\dev\ConsoleApp1"
+
+In csproj: 
+<DockerfileTag>mirrorboyskr/consoleapp1</DockerfileTag>
+
+In VS Containers Toolbox
+
+docker push mirrorboyskr/my-app:latest
+
+docker pull mirrorboyskr/my-app
+
+in GitHub
+-----------
+https://github.com/askrinnik
+settings Developer settings - Personal access tokens
+Write package scope
+
+docker login ghcr.io -u askrinnik --password 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
+Set tag in VS
+ghcr.io/askrinnik/my-app
+
+docker push ghcr.io/askrinnik/my-app:latest
+docker pull ghcr.io/askrinnik/my-app:latest
+
+
+
+------------------
+GitHub ations
+
+Docker-compose support
