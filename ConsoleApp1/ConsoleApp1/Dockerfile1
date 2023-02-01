@@ -1,0 +1,5 @@
+# Framework-dependend
+FROM mcr.microsoft.com/dotnet/runtime:7.0
+WORKDIR /app
+COPY publish/* .
+ENTRYPOINT ["dotnet", "ConsoleApp1.dll"]

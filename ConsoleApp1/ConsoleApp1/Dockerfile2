@@ -1,0 +1,6 @@
+# Self-contained
+FROM ubuntu
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+WORKDIR /app
+COPY publish_self/* .
+CMD ["./ConsoleApp1"]
